@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.15)
 
 #! CHANGE YOUR PROJECT NAME
 #  It is used as your project's main executable name. 
-set(PROJECT_NAME template)
+set(PROJECT_NAME motion) # my notion
 project(${PROJECT_NAME} C CXX) # project(${PROJECT_NAME} C CXX ASM)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -55,18 +55,40 @@ include(cmake/CompilerWarnings.cmake)
 ##########################################################
 
 #! Project main executable source compilation
-add_executable(${PROJECT_NAME} main.cpp
-				options_parser/options_parser.cpp options_parser/options_parser.h)
+add_library(game
+		game/TacticalGame.hpp
+		game/GameClock.hpp
+		game/GameClock.cpp
+		game/queue/ThreadQueue.h
+		game/TacticalGameState.cpp
+		game/TacticalGameState.hpp
+		game/request/TacticalGameRequest.cpp
+		game/request/TacticalGameRequest.hpp
+		game/GameFacade.cpp
+		game/GameFacade.hpp
+		game/Player.cpp
+		game/Player.hpp)
+set_target_properties(game PROPERTIES PUBLIC_HEADER game/TacticalGame.hpp)
+target_include_directories(game PRIVATE game/)
+
+add_executable(${PROJECT_NAME} main.cpp)
+
+target_link_libraries(${PROJECT_NAME} game)
 
 #! Put path to your project headers
-target_include_directories(${PROJECT_NAME} PRIVATE options_parser)
-
+#target_include_directories(${PROJECT_NAME} PRIVATE options_parser)
+target_link_libraries(${PROJECT_NAME} pthread)
 #! Add external packages
 # options_parser requires boost::program_options library
-find_package(Boost 1.71.0 COMPONENTS program_options system REQUIRED)
-target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} Boost::program_options Boost::system)
+#find_package(Boost 1.71.0 COMPONENTS program_options system REQUIRED)
+#target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIR})
+#target_link_libraries(${PROJECT_NAME} Boost::program_options Boost::system)
 
+#find_package(Qt5 REQUIRED COMPONENTS Widgets)
+#target_link_libraries(${PROJECT_NAME} PRIVATE )
+
+#find_package(OpenCV REQUIRED)
+#target_link_libraries( ${PROJECT_NAME} ${OpenCV_LIBS} Qt5::Widgets)
 ##########################################################
 # Fixed CMakeLists.txt part
 ##########################################################
