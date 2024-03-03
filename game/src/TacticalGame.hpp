@@ -9,16 +9,16 @@
 #include <iostream>
 #include <unordered_map>
 #include <future>
-#include "GameClock.hpp"
-#include "queue/ThreadQueue.h"
+#include "clock/GameClock.hpp"
+#include "ThreadQueue.h"
 #include "Player.hpp"
 #include "TacticalGameState.hpp"
 
 class TacticalGame {
-  GameClock clock;
   std::unordered_map<Player, ThreadQueue<int>, PlayerHasher> inQueues;
   std::unordered_map<Player, ThreadQueue<std::promise<TacticalGameState>>, PlayerHasher> outQueues;
   size_t availablePlayerId;
+  GameClock clock;
 
 
 private:
@@ -88,7 +88,7 @@ public:
     run();
   }
 
-  TacticalGame() : clock{1000 / 60} {}
+  TacticalGame() : clock{1000 / 100} {}
 //  TacticalGame(TacticalGame &&) = default;
 //
 //  TacticalGame(const TacticalGame &) = delete;

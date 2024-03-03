@@ -58,13 +58,17 @@ int main(int argc, char **argv)
 #endif
 
 #include <thread>
-#include "game/TacticalGame.hpp"
-#include "game/GameFacade.hpp"
+#include "game/src/TacticalGame.hpp"
+#include "game/src/GameFacade.hpp"
 
 int main() {
   // TODO change to some sort of facade to game
   // running update from this thread is a certified bruh moment
   auto game = GameFacade::getInstance();
+  /*
+   * multiplayer -> create server
+   * singleplayer -> load locally
+   * */
   int val = 0;
   while (true) {
     std::cin >> val;

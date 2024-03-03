@@ -4,6 +4,7 @@
 
 #ifndef COROUTINES_GAMECLOCK_HPP
 #define COROUTINES_GAMECLOCK_HPP
+
 #include <cstdint>
 #include <chrono>
 
@@ -22,10 +23,11 @@ private:
 
 public:
 
-  explicit GameClock(std::chrono::milliseconds msPerSecond): ticks{}, remainder{}, msPerTick{msPerSecond} {}
-  explicit GameClock(size_t msPerTick): ticks{}, remainder{}, msPerTick{msPerTick} {}
+  explicit GameClock(std::chrono::milliseconds msPerSecond) : ticks{}, remainder{}, msPerTick{msPerSecond} {}
 
-  GameClock& operator+=(std::chrono::nanoseconds delta_time) {
+  explicit GameClock(size_t msPerTick) : ticks{}, remainder{}, msPerTick{msPerTick} {}
+
+  GameClock &operator+=(std::chrono::nanoseconds delta_time) {
     remainder += delta_time;
     return *this;
   }
@@ -33,14 +35,19 @@ public:
   bool hasNext() {
     return remainder > std::chrono::duration_cast<std::chrono::nanoseconds>(msPerTick);
   }
+
   tick_t getNext() {
     remainder -= std::chrono::duration_cast<std::chrono::nanoseconds>(msPerTick);
     return ++ticks;
   }
 
-  GameClock(const GameClock&) = delete;
-  GameClock operator=(const GameClock&) = delete;
-  GameClock operator=(GameClock) = delete;
+  [[nodiscard]] const std::chrono::milliseconds & getMsPerTick() const{
+    return msPerTick;
+  }
+
+  GameClock(const GameClock &) = delete;
+
+  GameClock &operator=(const GameClock &) = delete;
 };
 
 //class CustomSteadyClock {
@@ -75,4 +82,5 @@ public:
     return time_point(duration(ticks));
   }
 };
+
 #endif //COROUTINES_GAMECLOCK_HPP

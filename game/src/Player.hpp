@@ -8,9 +8,11 @@
 
 #include <cstddef>
 
-struct Player {
-  size_t id;
+class Player {
+  /* sometype faction */
+
 public:
+  size_t id;
 
   bool operator<(const Player & other) const {
     return id < other.id;
@@ -18,12 +20,16 @@ public:
   bool operator==(const Player & other) const {
     return id == other.id;
   }
+
+  [[nodiscard]] size_t getId() const{
+    return id;
+  }
 };
 
 class PlayerHasher {
 public:
   size_t operator() (const Player & player) const{
-    return player.id;
+    return player.getId();
   }
 };
 

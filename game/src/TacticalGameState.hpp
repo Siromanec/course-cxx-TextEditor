@@ -4,7 +4,7 @@
 
 #ifndef MOTION_TACTICALGAMESTATE_HPP
 #define MOTION_TACTICALGAMESTATE_HPP
-#include "GameClock.hpp"
+#include "clock/GameClock.hpp"
 
 struct TacticalGameState {
   tick_t ticks;
