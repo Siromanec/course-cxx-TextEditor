@@ -1,44 +1,55 @@
-<mark>Template for your README. Remove all unused parts and instructions</mark>
+# Text Editor (Total War)
 
-# Lab work <mark>NUMBER</mark>: <mark>SHORT TOPIC</mark>
-Authors (team): <mark>AUTHORS WITH GITHUB LINKS</mark><br>
-Variant: <mark>VARIANT SHOULD BE HERE</mark>
-## Prerequisites
+compile with clion the following target:
+```
+run_game_server
+```
 
-<mark>LIST LIBRARIES/TOOLS/OTHER UTILITIES THAT NEED TO BE INSTALLED (E.G. GCC, OPENMP, CMAKE ETC)</mark>
+the game server starts on port 8080
 
-### Compilation
+to utilize the game server, you can use the `client.py`.
+It already has all the required command parsing currently available. It just transforms commands from human readable format to bytestreams and sends them to the server.
+Client is currently Ubuntu-only.
 
-<mark>HOW TO COMPILE YOUR PROGRAM? (RECOMMENDED: ./comile.sh)</mark>
+```
+$ python3 ./client.py
+(b'pB\xe1\x1c\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', ('127.0.0.1', 8080))
+> help
+        lobby: lobby commands; `lobby help` for more info
 
-### Installation
+```
+lobby commands;
+```
+> lobby help
+        usage: lobby <create|get|join|leave|players> ... args
+                create: create a new lobby
+                get: get all lobbies
+                join <lobby_id>: join a lobby
+                leave: leave the current lobby
+                players <lobby_id>: get all players in a lobby
 
-<mark>DESCRIBE THE INSTALLATION PROCESS (USE ./dependencies FOLDER)</mark>
+```
+sample server logs:
+```
+starting server on udp address 0.0.0.0:8080
+client has connected: 127.0.0.1:43654
+client has connected: 127.0.0.1:48437
+lobby: 1
+lobby: 1
+        player: 2
+        player: 1
+lobby: 1
+        player: 1
+lobby: 1
+        player: 2
+        player: 1
+dud command from player: 2
+client has connected: 127.0.0.1:45598
+```
+currently all "get" requsets are not implemented. They are just logged by the server.
+the "dud" command is a command that had wrong arguments/ had invalid state; 
+the server should send some error message to the client.
 
-<mark>Note: For Python scripts, You must add `requirenments.txt` 
-file and add your env to the `.gitignore` file!</mark>
+## protocol diagram
 
-### Usage
-
-<mark>PROVIDE AN EXAMPLE OF HOW TO RUN YOUR PROGRAM (IT CAN BE A_flag COMMAND LINE WITH INPUT AND EXPECTED OUTPUT)</mark>
-
-<mark>Note: if your project needs or generates any data, media and so on -- put them
-into the data folder</mark> 
-
-### Important!
-
-<mark>WHAT ELSE SHOULD WE KNOW ABOUT YOUR WORK? (E.G. KNOWN ISSUES, BUGS, SPECIAL BEHAVIOR ETC)</mark>
-
-### Results
-
-<mark>DESCRIBE THE RESULTS OF THE WORK YOU DID. WHAT DID YOU LEARN OR FIND INTERESTING?</mark>
-
-# Additional tasks
-<mark>IF APPLICABLE, LIST ALL THE EXTRA FEATURES YOU ADDED. PROVIDE DETAILS<mark>
-
-# ATTENTION!
-  
-Additional tasks not listed in the previous paragraph would not be graded.
-
-Be sure to provide a complete list of authors.
-
+![img.png](img.png)

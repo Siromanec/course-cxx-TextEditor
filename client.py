@@ -65,8 +65,17 @@ while True:
                     sock.sendto(COMM_PROTOCOL + HEADER + LOBBY_CONTEXT + LOBBY_PLAYERS + lobby_id.to_bytes(8, "little"), (UDP_IP, UDP_PORT))
                     res = sock.recvfrom(512)
                     print(res)
-                case _:
-                    print("Invalid command")
+                case "help":
+                    print("\tusage: lobby <create|get|join|leave|players> ... args")
+                    print("\t\tcreate: create a new lobby")
+                    print("\t\tget: get all lobbies")
+                    print("\t\tjoin <lobby_id>: join a lobby")
+                    print("\t\tleave: leave the current lobby")
+                    print("\t\tplayers <lobby_id>: get all players in a lobby")
+        case "help":
+            print("\tlobby: lobby commands; `lobby help` for more info")
+
+                    # print("Invalid command")
     # sock.sendto(COMM_PROTOCOL + HEADER + LOBBY_CONTEXT + LOBBY_CREATE, (UDP_IP, UDP_PORT))
     # res = sock.recvfrom(512)
     # print(res)
