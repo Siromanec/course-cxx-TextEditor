@@ -21,8 +21,7 @@ class GameFacade {
 
   GameFacade() : game_thread{std::thread{&TacticalGame::run, &game}}, ai_thread{[=, this]() {
     Player ai{};
-    ai.id = game.getAvailablePlayerId();
-    game.join(ai);
+    game.accept(ai);
     while (true) {
       std::this_thread::sleep_for(std::chrono::milliseconds(5000));
       game.command(ai, 42);
@@ -32,10 +31,9 @@ class GameFacade {
     }
   }}, player{} { // or do connection to a server with the game
 
-    player.id = game.getAvailablePlayerId();
 
 
-    game.join(player);
+    game.accept(player);
   }
 
   ~GameFacade() {

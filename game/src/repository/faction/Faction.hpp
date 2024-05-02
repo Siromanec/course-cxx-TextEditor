@@ -11,13 +11,16 @@
 #include "repository/Repository.hpp"
 
 
+
 class Faction {
   /* is derived from Loader*/
   std::string name;
   std::vector<UnitData> unitRepository;
 
 public:
-  Faction(std::string &&name, std::vector<UnitData> &&unitRepository) : name{std::move(name)}, unitRepository{std::move(unitRepository)} {}
+
+  template<typename U, typename V>
+  Faction(U &&name, V &&unitRepository) : name{std::forward<U>(name)}, unitRepository{std::forward<V>(unitRepository)} {}
 
   [[nodiscard]] const std::vector<UnitData> &getUnitData() const {
     return unitRepository;

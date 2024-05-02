@@ -8,6 +8,9 @@
 
 class GameClient {
 
+  void connect() {
+
+  }
 };
 
 

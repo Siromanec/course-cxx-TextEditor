@@ -14,9 +14,9 @@
 #include "Player.hpp"
 #include "TacticalGameState.hpp"
 
-class TacticalGame {
-  std::unordered_map<Player, ThreadQueue<int>, PlayerHasher> inQueues;
-  std::unordered_map<Player, ThreadQueue<std::promise<TacticalGameState>>, PlayerHasher> outQueues;
+class TacticalGame { // todo: refactor to be BattleContext
+  std::unordered_map<Player, ThreadQueue<int>> inQueues;
+  std::unordered_map<Player, ThreadQueue<std::promise<TacticalGameState>>> outQueues;
   size_t availablePlayerId;
   GameClock clock;
 
@@ -26,7 +26,7 @@ private:
   }
 
 public:
-  void join(const Player &player) {
+  void accept(const Player &player) {
     inQueues[player];
     outQueues[player];
   }
@@ -76,7 +76,7 @@ public:
         std::promise<TacticalGameState> promise;
         if (playerOutQueue.try_pop(promise)) {
           promise.set_value(TacticalGameState{.ticks = clock.getTicks()});
-          std::cout << clock.getTicks() << ' ' << player.id << std::endl;
+          std::cout << clock.getTicks() << ' ' << static_cast<typename Player::player_id_t> (player) << std::endl;
         }
       }
 
@@ -91,12 +91,11 @@ public:
   TacticalGame() : clock{1000 / 100} {}
 //  TacticalGame(TacticalGame &&) = default;
 //
-//  TacticalGame(const TacticalGame &) = delete;
+  TacticalGame(const TacticalGame &) = delete;
 //
 //
-//  TacticalGame operator=(const TacticalGame &) = delete;
+  TacticalGame operator=(const TacticalGame &) = delete;
 //
-//  TacticalGame operator=(TacticalGame) = delete;
 };
 
 

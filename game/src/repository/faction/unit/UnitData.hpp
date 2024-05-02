@@ -22,6 +22,7 @@ struct UnitData {
   const unsigned hitPoints;
   const unsigned attack;
   const unsigned defence;
+  /*unit height?*/
 };
 
 

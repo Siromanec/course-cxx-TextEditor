@@ -132,6 +132,15 @@ include(cmake/CompilerWarnings.cmake)
 #)
 
 #include(game/CMakeLists.txt)
+
+find_package(Boost REQUIRED COMPONENTS system serialization)
+
+
+
+add_executable(try_bin_archive explore/try_binary_archive.cpp)
+target_include_directories(try_bin_archive PRIVATE ${Boost_INCLUDE_DIR})
+target_link_libraries(try_bin_archive Boost::system Boost::serialization)
+
 add_subdirectory(game)
 
 add_executable(${PROJECT_NAME} main.cpp)

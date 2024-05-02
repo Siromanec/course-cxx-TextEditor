@@ -2,7 +2,7 @@
 // Created by ADMIN on 03-Mar-24.
 //
 
-#include <gtest/gtest.h>
+#include "TestGameLoader.hpp"
 #include "repository/GameLoader.hpp"
 
 TEST(TestGameLoader, UnitLoader) {
@@ -10,28 +10,18 @@ TEST(TestGameLoader, UnitLoader) {
   std::filesystem::path path = "./resource/factions/france/units/infantry.json";
   GameLoader loader{{}};
   auto unit = loader.loadUnitData(path);
-//  auto &factionsRepo = game.getFactions();
-//  auto &factions = factionsRepo.getAll();
-//  auto &faction = factions.at(0);
-//  auto &factionName = faction.getName();
-//  auto &unitRepo = faction.getUnitData();
-//  auto &units = unitRepo.getAll();
-//  std::cout << units.size() << std::endl;
-//  auto &unit = units.at(0);
-//
-//
-//  std::cout << "faction name: " << factionName << std::endl;
-  std::cout << "Parsed UnitData:" << std::endl;
-  std::cout << "Name: " << unit.name << std::endl;
-  std::cout << "Mass: " << unit.mass << " kg" << std::endl;
-  std::cout << "Speed: " << unit.speed << " m/s" << std::endl;
-  std::cout << "Unit Radius: " << unit.unitRadius << " m" << std::endl;
-  std::cout << "Attack Radius: " << unit.attackRadius << " m" << std::endl;
-  std::cout << "Cost: " << unit.cost << std::endl;
-  std::cout << "Soldier Count: " << unit.soldierCount << std::endl;
-  std::cout << "Hit Points: " << unit.hitPoints << std::endl;
-  std::cout << "Attack: " << unit.attack << std::endl;
-  std::cout << "Defence: " << unit.defence << std::endl;
+  ASSERT_STREQ(unit.name.c_str(), "infantry");
+  ASSERT_EQ(unit.mass, 70);
+  ASSERT_FLOAT_EQ(unit.speed, 1.33);
+  ASSERT_FLOAT_EQ(unit.unitRadius, 0.3);
+  ASSERT_FLOAT_EQ(unit.attackRadius, 0.5);
+  ASSERT_EQ(unit.cost, 100);
+  ASSERT_EQ(unit.soldierCount, 100);
+  ASSERT_EQ(unit.hitPoints, 100);
+  ASSERT_EQ(unit.attack, 20);
+  ASSERT_EQ(unit.defence, 5);
+
+
 
 
 
@@ -42,24 +32,22 @@ TEST(TestGameLoader, UnitRepoLoader) {
   std::filesystem::path path = "./resource/factions/france/units/";
   GameLoader loader{{}};
   auto unitRepo = loader.loadUnitRepository(path);
-  std::cout << "unit count: " << unitRepo.size() << std::endl;
+  ASSERT_EQ(unitRepo.size(), 1);
 }
 
 TEST(TestGameLoader, FactionLoader) {
-  /*todo create directory by hand (with this code)*/
   std::filesystem::path path = "./resource/factions/france/";
   GameLoader loader{{}};
   auto faction = loader.loadFaction(path);
-//  auto & units = unitRepo.getAll();
-  std::cout << "faction name" << faction.getName() << std::endl;
+  ASSERT_EQ(faction.getName(), "france");
 }
 
 TEST(TestGameLoader, FactionRepoLoader) {
-  /*todo create directory by hand (with this code)*/
   std::filesystem::path path = "./resource/factions/";
   GameLoader loader{{}};
   auto factionRepo = loader.loadFactionRepository(path);
-  std::cout << "faction count" << factionRepo.size() << std::endl;
+  ASSERT_EQ(factionRepo.size(), 2);
+
 }
 
 TEST(TestGameLoader, GameLoader) {
@@ -67,7 +55,8 @@ TEST(TestGameLoader, GameLoader) {
   std::filesystem::path path = "./resource";
   GameLoader loader{path};
   auto game = loader.loadGame();
-  std::cout << "faction count" << game.getFactions().size() << std::endl;
+  ASSERT_EQ(game.getFactions().size(), 2);
+
 }
 
 

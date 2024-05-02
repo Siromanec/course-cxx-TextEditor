@@ -60,13 +60,17 @@ FetchContent_MakeAvailable(googletest)
 
 #! Project main executable source compilation
 
-message(MESSAGE "dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 
 
 set(GAME_INCLUDE
         include/simdjson.h
         include/simdjson.cpp
         include/ThreadQueue.h
+        src/context/GameContext.cpp
+        src/context/GameContext.hpp
+        auxiliary/serialization.hpp
+        src/Context.cpp
+        src/Context.hpp
 )
 
 
@@ -96,8 +100,8 @@ add_library(${GAME_LIB_NAME} SHARED
         src/repository/faction/unit/UnitData.hpp
         src/repository/faction/unit/UnitStatsFactory.cpp
         src/repository/faction/unit/UnitStatsFactory.hpp
-        src/GameServer.cpp
-        src/GameServer.hpp
+        src/server/GameServer.cpp
+        src/server/GameServer.hpp
         src/GameClient.cpp
         src/GameClient.hpp
         src/Game.cpp
@@ -106,12 +110,19 @@ add_library(${GAME_LIB_NAME} SHARED
         src/repository/faction/Faction.hpp
         src/repository/Repository.hpp
         src/repository/GameLoader.cpp
-        src/repository/GameLoader.hpp)
+        src/repository/GameLoader.hpp
+        src/context/state/StateMemento.cpp
+        src/context/state/StateMemento.hpp
+        src/context/state/State.cpp
+        src/context/state/State.hpp
+        SetupComponents.cpp
+        SetupComponents.hpp)
 #set_target_properties(game PROPERTIES PUBLIC_HEADER game/src/TacticalGame.hpp)
 target_include_directories(${GAME_LIB_NAME} PRIVATE src/)
 target_include_directories(${GAME_LIB_NAME} PUBLIC include/)
+target_include_directories(${GAME_LIB_NAME} PUBLIC auxiliary/)
 
-find_package(Boost REQUIRED COMPONENTS graph)
+find_package(Boost REQUIRED COMPONENTS system graph)
 find_package(glm REQUIRED)
 
 target_include_directories(${GAME_LIB_NAME} PRIVATE ${Boost_INCLUDE_DIR})
@@ -119,14 +130,33 @@ target_link_libraries(${GAME_LIB_NAME} Boost::graph)
 
 target_link_libraries(${GAME_LIB_NAME} glm::glm)
 
+target_link_libraries(${GAME_LIB_NAME} pthread)
 
 
 
+add_executable(run_game_server
+        src/server/GameServer.cpp
+        src/server/GameServer.hpp
+        auxiliary/serialization.hpp
+        src/Context.cpp
+        src/Context.hpp)
+target_include_directories(run_game_server PRIVATE ${Boost_INCLUDE_DIR})
+target_compile_definitions(run_game_server PRIVATE RUN_GAME_SERVER=1)
+#target_link_libraries(run_game_server Boost::asio)
+target_include_directories(run_game_server PUBLIC auxiliary/)
 
-set(TEST_FILES test/repository/TestGameLoader.cpp)
+
+set(TEST_FILES test/repository/TestGameLoader.cpp test/TestGameServer.cpp
+        test/repository/TestGameLoader.hpp)
+#        test/TestGameServer.hpp)
 add_executable(Tests ${TEST_FILES})
+#add_executable(test_server test/repository/TestGameLoader.cpp)
 target_include_directories(Tests PRIVATE test/)
 target_include_directories(Tests PRIVATE src/)
+target_include_directories(Tests PRIVATE ${google_test_include_dirs})
+
+#target_include_directories(test_server PRIVATE test/)
+#target_include_directories(test_server PRIVATE src/)
 
 target_link_libraries(
         Tests
@@ -134,7 +164,13 @@ target_link_libraries(
         game
 )
 
-target_link_libraries(${GAME_LIB_NAME} pthread)
+#target_link_libraries(
+#        test_server
+#        GTest::gtest
+#        GTest::gtest_main
+#        game
+#)
+
 #export(TARGETS ${PROJECT_NAME})
 
 #! Put path to your project headers
