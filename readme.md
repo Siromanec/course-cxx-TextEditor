@@ -1,5 +1,7 @@
 # Strategy game
 
+most interesting code is in server folder
+
 compile with clion the following target:
 ```
 run_game_server
