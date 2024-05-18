@@ -21,11 +21,11 @@ $ python3 ./client.py
 lobby commands;
 ```
 > lobby help
-        usage: lobby <create|get|join|leave|players> ... args
+        usage: lobby <create|get|join|parse_leave|players> ... args
                 create: create a new lobby
                 get: get all lobbies
                 join <lobby_id>: join a lobby
-                leave: leave the current lobby
+                leave: parse_leave the current lobby
                 players <lobby_id>: get all players in a lobby
 
 ```

@@ -4,12 +4,12 @@
 
 #include "Context.hpp"
 
-std::unique_ptr<Command> ContextManager::get_command(byte_istream &istream, Player player) {
+void ContextManager::parse(byte_istream &command, byte_ostream &response, Player player) {
   MANAGER_TYPE type;
-  istream >> type;
+  command >> type;
   switch (type) {
     case LOBBY_MANAGER: {
-      return lobbyManager->get_command(istream, player);
+      return lobbyManager->parse(command, response, player);
     }
     case ARMY_CREATION_MANAGER: {
       break;

@@ -69,8 +69,14 @@ set(GAME_INCLUDE
         src/context/GameContext.cpp
         src/context/GameContext.hpp
         auxiliary/serialization.hpp
-        src/Context.cpp
-        src/Context.hpp
+        src/server/Context.cpp
+        src/server/Context.hpp
+        src/server/Response.cpp
+        src/server/Response.hpp
+        src/server/LobbyConfig.cpp
+        src/server/LobbyConfig.hpp
+        src/server/Header.cpp
+        src/server/Header.hpp
 )
 
 
@@ -138,8 +144,8 @@ add_executable(run_game_server
         src/server/GameServer.cpp
         src/server/GameServer.hpp
         auxiliary/serialization.hpp
-        src/Context.cpp
-        src/Context.hpp)
+        src/server/Context.cpp
+        src/server/Context.hpp)
 target_include_directories(run_game_server PRIVATE ${Boost_INCLUDE_DIR})
 target_compile_definitions(run_game_server PRIVATE RUN_GAME_SERVER=1)
 #target_link_libraries(run_game_server Boost::asio)

@@ -13,102 +13,32 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <span>
 #include "serialization.hpp"
+#include "Context.hpp"
 #include "../Player.hpp"
-#include "../Context.hpp"
+#include "Header.hpp"
 
 //using byte_ostream = std::basic_ostream<std::byte>;
 //using byte_istream = std::basic_istream<std::byte>;
 
 
+constexpr bool enable_logs = true;
 
 typedef std::array<std::byte, 4> communication_protocol_t;
 constexpr communication_protocol_t COMMUNICATION_PROTOCOL = {std::byte(0x70),
                                                              std::byte(0x42),
                                                              std::byte(0xE1),
                                                              std::byte(0x1C)};
-constexpr std::uint32_t MAX_ACKS = 64;
+
 
 //using Player = std::uint32_t;
 
-using Unit = std::uint32_t;
-using Sequence = std::uint32_t;
-using Ack = std::uint32_t;
-using Acks = std::bitset<MAX_ACKS>;
 
-
-struct Header: public serializable {
-  constexpr Header() noexcept = default;
-  constexpr Header(const Header &) noexcept = default;
-  constexpr Header(Header &&) noexcept = default;
-
-  constexpr Header(Sequence sequence, Ack ack, Acks acks) noexcept:
-    sequence{sequence}, ack{ack}, acks{acks} {}
-
-//  communication_protocol_t protocol = COMMUNICATION_PROTOCOL;
-  Sequence sequence{};
-  Ack ack{};
-  Acks acks{};
-
-  byte_stream &serialize(byte_stream &o) const final {
-    o << sequence << ack << acks.to_ullong();
-    return o;
-  }
-  byte_istream &deserialize(byte_istream &o) final {
-    std::uint64_t acks_;
-    o >> sequence >> ack >> acks_;
-    acks = acks_;
-    return o;
-  }
-
-};
-
-
-
-struct ConnectionInfo {
-  Sequence localSequence{};
-  Sequence remoteSequence{};
-
-  Ack lastDeliveredPacket{};
-
-  Acks deliveredAcks{};
-  Acks receivedPackets{};
-
-  void updateWithRemote(const Header &header) {
-    updateDeliveredAcks(header.ack, header.acks);
-    updateReceivedPackets(header.sequence);
-  }
-
-  Header getNextHeader() {
-    return {++localSequence, remoteSequence, receivedPackets};
-  }
-
-  void updateDeliveredAcks(Ack ack, Acks acks) {
-    if (ack > lastDeliveredPacket) {
-      std::swap(ack, lastDeliveredPacket);
-      std::swap(acks, deliveredAcks);
-    } else if (ack == lastDeliveredPacket) {
-      deliveredAcks |= acks;
-      return;
-    }
-    auto diff = (lastDeliveredPacket - ack) * (ack != 0);
-    /* shift acks to match local and set bit to received*/
-    deliveredAcks |= acks << (diff) | Acks{(1ul << (diff - 1)) * (ack != 0)};
-  }
-
-  void updateReceivedPackets(Sequence s) {
-    auto diff = std::abs((long long) s - remoteSequence);
-    if (s > remoteSequence) {
-      receivedPackets <<= diff;
-    }
-    receivedPackets |= (0b1 << (diff - 1)) * (diff != 0);
-    remoteSequence = std::max(remoteSequence, s);
-  }
-};
 
 struct Client {
   ConnectionInfo connectionInfo;
   Player player{};
 };
+
 
 class GameServer {
   ContextManager contextManager{};
@@ -118,14 +48,14 @@ public:
   explicit GameServer(boost::asio::io_context &ioContext, unsigned short port = 8080) :
       socket{ioContext, udp::endpoint(udp::v4(), port)} {
     std::cout << "starting server on udp address " << socket.local_endpoint() << std::endl;
-    recv_buffer.getContainer().resize(512); // violating open-closed principle with no doubt
+    recv_buf.getContainer().resize(512); // violating open-closed principle with no doubt
     start_receive();
   }
 
   void send_all(std::string_view message) {
     for (auto &[key, client]: clients) {
       auto header = client.connectionInfo.getNextHeader();
-      byte_stream buf;
+      byte_ostream buf;
       buf << COMMUNICATION_PROTOCOL;
       buf << header;
       buf << std::span(message);
@@ -137,10 +67,10 @@ public:
     }
   }
 
-  void send_all(const byte_stream &message) {
+  void send_all(const byte_ostream &message) {
     for (auto &[key, client]: clients) {
       auto header = client.connectionInfo.getNextHeader();
-      byte_stream buf;
+      byte_ostream buf;
       buf << COMMUNICATION_PROTOCOL;
       buf << header;
       buf << message; // extra copy
@@ -157,8 +87,8 @@ private:
 
   void start_receive() {
     remote_endpoint = udp::endpoint();
-    recv_buffer.reset();
-    socket.async_receive_from(boost::asio::buffer(recv_buffer.getContainer()),
+    recv_buf.reset();
+    socket.async_receive_from(boost::asio::buffer(recv_buf.getContainer()),
                               remote_endpoint,
                               std::bind(&GameServer::handle_receive, this,
                                         std::placeholders::_1,
@@ -172,24 +102,58 @@ private:
 
     if (!error) {
       communication_protocol_t comm;
-      recv_buffer >> comm;
+      recv_buf.set_size(bytes_transferred);
+      recv_buf >> comm;
+
       if (std::memcmp(comm.data(), COMMUNICATION_PROTOCOL.data(), COMMUNICATION_PROTOCOL.size()) == 0) {
 
         auto &client = clients[remote_endpoint];
+        byte_ostream resp_buf;
+        resp_buf << COMMUNICATION_PROTOCOL;
         if (bytes_transferred == sizeof(COMMUNICATION_PROTOCOL))
           std::cout << "client has connected: " << remote_endpoint << std::endl;
         else {
           Header header;
-          recv_buffer >> header;
+          recv_buf >> header;
           client.connectionInfo.updateWithRemote(header);
-          auto command = contextManager.get_command(recv_buffer, client.player);
-          command->operator()();
+          resp_buf << client.connectionInfo.getNextHeader();
+          resp_buf << SERVER_MESSAGE::RESPONSE;
+          resp_buf << header.sequence; // response to
+
+          contextManager.parse(recv_buf, resp_buf, client.player); // return a vector
+          /**           what is the logic behind delayed execution?
+           * that some data is bound to a specific command?
+           * why not just function arguments?
+           *  should it actually just generate the response (as the responsibility of get_command idea)?
+           *  and make the response optional?
+           *  how response should be differentiated from the command?
+           *  can clients send the response-like data? because all commands are data and not all data is commands
+           *  response (to relative sequence) (those, who wait for it lnow how to parse it) |
+           *  command (as specified before)
+           *  message (that is not bound to any sequence)
+           *  can server command the client with the same protocol? no - the commands are not symmetric
+           *  but the commands that are called "messages" can use the same concept,
+           *  although with
+           *  a different protocol and dirrected from a server to the client
+           *  are there any compulsory messages that, must respond to?
+           *  level of compulsion:
+           *  1. (must respond)
+           *     - an ack
+           *  2. (must react, or the client will be in an invalid state)
+           *  3. (informative)
+           *  (1 and 2 can be combined)
+           *  i propose to sperate those messages by flags
+           *  e.g. msg | ack | react
+           *  e.g. command | context_a | context_b ...
+           *  should command and msg be number or a bit?
+           *  restriction: only 8 bits for all flags and types
+           *  first 4 bits for type, last 4 for flags
+           *  can last 4 bits behave differently for different types?
+           *  can the game state be considered a message?
+           *  */
+
         }
 
-        byte_stream resp_buf;
-        resp_buf << COMMUNICATION_PROTOCOL;
-        resp_buf << client.connectionInfo.getNextHeader();
-//        auto message = std::make_shared<std::string>(std::string(client.connectionInfo.getNextHeader().toStream().str()));
 
         socket.async_send_to(boost::asio::buffer(resp_buf.getContainer()), remote_endpoint,
                              std::bind(&GameServer::handle_send, this, boost::asio::buffer(resp_buf.getContainer()),
@@ -197,11 +161,13 @@ private:
                                        std::placeholders::_2));
 
       } else {
-        std::cout << "unauthorized byte sequence " << std::hex;
-        for (auto c: recv_buffer.getContainer()) {
-          std::cout << std::hex << (short) c;
+        if constexpr (enable_logs) {
+          std::cout << "unauthorized byte sequence " << std::hex;
+          for (auto c: recv_buf.getContainer()) {
+            std::cout << std::hex << (short) c;
+          }
+          std::cout << std::dec << std::endl;
         }
-        std::cout << std::dec << std::endl;
       }
       start_receive();
 
@@ -222,8 +188,8 @@ private:
 
   udp::endpoint remote_endpoint;
   udp::socket socket;
-//  std::array<std::byte, 512> recv_buffer{};
-  byte_istream recv_buffer{};
+//  std::array<std::byte, 512> recv_buf{};
+  byte_istream recv_buf{};
 
   class UdpHasher {
   public:

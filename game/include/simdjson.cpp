@@ -13656,7 +13656,7 @@ simdjson_inline json_character_block json_character_block::classify(const simd::
   // could do it a bit cheaper. This is in contrast with the x64 implementations
   // where we can, efficiently, do the white space and structural matching
   // separately. One reason for this difference is that on ARM NEON, the table
-  // lookups either zero or leave unchanged the characters exceeding 0xF whereas
+  // lookups either zero or parse_leave unchanged the characters exceeding 0xF whereas
   // on x64, the equivalent instruction (pshufb) automatically applies a mask,
   // ignoring the 4 most significant bits. Thus the x64 implementation is
   // optimized differently. This being said, if you use this code strictly

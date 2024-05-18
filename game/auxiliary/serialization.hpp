@@ -11,7 +11,7 @@
 #include <memory>
 #include <cstring>
 
-class byte_stream {
+class byte_ostream {
   typedef std::vector<std::byte> container_type;
   container_type container;
 
@@ -24,7 +24,7 @@ class byte_stream {
 public:
   template<class T>
   requires std::is_trivial_v<T>
-  byte_stream &operator<<(const T &item) {
+  byte_ostream &operator<<(const T &item) {
     container.resize(container.size() + sizeof(T));
     std::memmove(container.data() + container.size() - sizeof(T), &item, sizeof(T));
     return *this;
@@ -32,7 +32,7 @@ public:
 
   template<class T>
   requires std::is_trivial_v<typename std::span<T>::value_type>
-  byte_stream &operator<<(const std::span<T> item) {
+  byte_ostream &operator<<(const std::span<T> item) {
     typedef typename std::iterator_traits<decltype(item.begin())>::value_type contained_t;
     size_t size_ = item.size_bytes();
     *this << size_;
@@ -49,16 +49,22 @@ public:
     return container.size();
   }
 
-  byte_stream &operator<<(const byte_stream &s) {
+  byte_ostream &operator<<(const byte_ostream &s) {
     container.insert(container.end(), s.container.begin(), s.container.end());
     return *this;
   }
 
 };
+
+/**
+ * performs no bounds checks
+ * */
 class byte_istream {
   typedef std::vector<std::byte> container_type;
   container_type container;
   std::size_t offset{};
+  std::size_t size_m{};
+
 
   void a() {
     int b;
@@ -68,9 +74,14 @@ class byte_istream {
   }
 
 public:
+  void set_size(std::size_t size_) {
+    size_m = size_;
+  }
   void reset() {
     offset = 0;
+    size_m = 0;
   }
+
   template<class T>
   requires std::is_trivial_v<T>
   byte_istream &operator>>(T &item) {
@@ -78,6 +89,7 @@ public:
     offset += sizeof(T);
     return *this;
   }
+
   template<class T>
   requires requires(T item) {
     item.data();
@@ -105,10 +117,7 @@ public:
     offset += size_;
     return *this;
   }
-//  byte_stream &operator<<(const byte_stream &s) {
-//    container.insert(container.end(), s.container.begin(), s.container.end());
-//    return *this;
-//  }
+
   [[nodiscard]] container_type &getContainer() {
     return container;
   }
@@ -117,21 +126,22 @@ public:
     return container.size();
   }
 
-
-
 };
 
 class serializable {
 public:
-  virtual byte_stream & serialize(byte_stream &) const = 0;
-  friend byte_stream &operator<<(byte_stream &o, const serializable &s) {
+  virtual byte_ostream &serialize(byte_ostream &) const = 0;
+
+  friend byte_ostream &operator<<(byte_ostream &o, const serializable &s) {
     return s.serialize(o);
   }
 
-  virtual byte_istream & deserialize(byte_istream &) = 0;
+  virtual byte_istream &deserialize(byte_istream &) = 0;
+
   friend byte_istream &operator>>(byte_istream &o, serializable &s) {
     return s.deserialize(o);
   }
 };
+
 
 #endif //MOTION_SERIALIZATION_HPP
