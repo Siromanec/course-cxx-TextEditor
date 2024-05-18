@@ -5,7 +5,7 @@ compile with clion the following target:
 run_game_server
 ```
 
-the game server starts on port 8080
+the game server starts on udp port 8080
 
 to utilize the game server, you can use the `client.py`.
 It already has all the required command parsing currently available. It just transforms commands from human readable format to bytestreams and sends them to the server.
