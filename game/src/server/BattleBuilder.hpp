@@ -6,6 +6,7 @@
 #define MOTION_BATTLEBUILDER_HPP
 
 
+#include <optional>
 #include "LobbyConfig.hpp"
 
 struct UnitStats {
@@ -22,9 +23,22 @@ struct UnitStats {
 };
 
 class UnitComponentSystem {
+  typedef uint32_t UnitId;
 
   std::vector<UnitStats::health_t> health_component;
+  std::vector<std::optional<UnitId>> target_component;
 //  std::vector<UnitStats::attack_t> health_component;
+
+  void update_damage() {
+
+  }
+  void update() {
+    for (int i = 0; i < health_component.size(); i++) {
+      health_component[i] -= 1;
+    }
+  }
+
+
 };
 class Battle {
   TIME time;
