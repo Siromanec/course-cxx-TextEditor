@@ -31,6 +31,7 @@ namespace Response {
     INVALID_REQUEST = 0x5,
     CONFLICT = 0x6,
     NOT_FOUND = 0x7,
+    UNAUTHORIZED = 0x8,
 
 
   };

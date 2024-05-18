@@ -77,6 +77,8 @@ set(GAME_INCLUDE
         src/server/LobbyConfig.hpp
         src/server/Header.cpp
         src/server/Header.hpp
+        src/server/BattleBuilder.cpp
+        src/server/BattleBuilder.hpp
 )
 
 

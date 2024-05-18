@@ -71,6 +71,7 @@ public:
   void add_player(const Player& player) {
     players.insert(player);
   }
+  const LobbyConfig &get_config() const { return config; }
 };
 
 
@@ -83,19 +84,29 @@ private:
   std::unique_ptr<ArmyCreationManager> armyCreationManager;
   open_lobbies_t open_lobbies{};
   enum MANAGER_TYPE : uint8_t {
-    NONE,
     LOBBY_MANAGER = 0x1,
     ARMY_CREATION_MANAGER = 0x2,
     DEPLOYMENT_MANAGER = 0x3,
     BATTLE_MANAGER = 0x4,
   };
   /*PLAYERS*/
+  std::optional<uint64_t> lobby_containing_player(const Player& player) {
+    for (auto &[id, lobby]: open_lobbies) {
+      if (lobby.has_player(player)) {
+        return id;
+      }
+    }
+    return std::nullopt;
+  }
 
+  friend class LobbyManager;
+  friend class ArmyCreationManager;
 public:
+
   ContextManager() : lobbyManager{std::make_unique<LobbyManager>(*this, open_lobbies)},
                      armyCreationManager{std::make_unique<ArmyCreationManager>(*this, open_lobbies)} {}
 
-  virtual void parse(byte_istream &istream, byte_ostream &response, Player player) final;
+  void parse(byte_istream &istream, byte_ostream &response, Player player) final;
 
 };
 
@@ -114,7 +125,6 @@ public:
 class LobbyManager : public Context {
 
   enum LOBBY_CONTEXT : uint8_t {
-    NONE,
     CREATE_LOBBY = 0x1,
     JOIN = 0x2,
     GET_LOBBIES = 0x3,
@@ -124,7 +134,7 @@ class LobbyManager : public Context {
   };
 
   void parse_join_command(byte_istream &args, byte_ostream &response, Player player) {
-    auto id = lobby_containing_player(player);
+    auto id = contextManager.lobby_containing_player(player);
     if (id.has_value()) {
       response << Response::ERROR << Response::ERROR_TYPE::CONFLICT; // already in a lobby
       return;
@@ -144,7 +154,7 @@ class LobbyManager : public Context {
 
 
   void parse_create_lobby(byte_istream &args, byte_ostream &response, const Player &player) {
-    auto id = lobby_containing_player(player);
+    auto id = contextManager.lobby_containing_player(player);
     if (id.has_value()) { //todo change to <Player, Lobby> in JOINED_LOBBIES
       response << Response::ERROR << Response::ERROR_TYPE::CONFLICT; // already in a lobby
       return;
@@ -165,18 +175,9 @@ class LobbyManager : public Context {
     }
   }
 
-  std::optional<uint64_t> lobby_containing_player(const Player& player) {
-    for (auto &[id, lobby]: open_lobbies) {
 
-      if (lobby.has_player(player)) {
-        return id;
-      }
-    }
-    return std::nullopt;
-//    throw std::runtime_error("player not in any lobby");
-  }
 
-  void parse_get_players(byte_istream &args, byte_ostream &response, Player player) {
+  void parse_get_players(byte_istream &args, byte_ostream &response, const Player& player) {
     std::uint64_t lobby_id;
     args >> lobby_id;
 
@@ -195,7 +196,7 @@ class LobbyManager : public Context {
   }
 
   void parse_leave(byte_istream &args, byte_ostream &response, Player player) {
-    auto id = lobby_containing_player(player);
+    auto id = contextManager.lobby_containing_player(player);
     if (id.has_value()) {
       if (open_lobbies.at(id.value()).is_admin(player)) {
         open_lobbies.erase(id.value());
@@ -254,49 +255,107 @@ private:
 
 };
 
+// given time constraints, the game would be a free for all, with no teams and no factions
+// (anyway, the things i would come up would not be much different or require much more unique implementations)
+// also no AIs
 class ArmyCreationManager: public Context {
   enum ARMY_CREATION_CONTEXT : uint8_t {
-    NONE,
     TOGGLE_READY = 0x1,
-    UNIT_ADD = 0x2,
-    UNIT_REMOVE = 0x3,
-    UNITS_ADD = 0x4,
-    TEAM_JOIN = 0x5,
-    TEAM_LEAVE = 0x6,
-    SET_FACTION = 0x7,
-    START = 0x8,
+    UNITS_ADD = 0x2,
+    START = 0x3,
   };
 
+
+  enum UNIT_TEMPLATE : uint8_t {
+    PEASANTS = 0x0, // tha meat
+    INFANTRY = 0x1, // average stats
+    ARMOURED_INFANTRY = 0x2, // slow, ok damage, heavily armoured, small range
+    SHOCK_INFANTRY = 0x3, // slow and high damage, low armor, big range
+    CAVALRY = 0x2, // like infantry but faster and higher damage due to the speed
+    // this should be migrated to some config file but i cannot be bothered rn
+    // balance is a future issue
+  };
+
+  const std::unordered_map<UNIT_TEMPLATE, std::uint32_t> unitCosts = {
+    {PEASANTS, 10},
+    {INFANTRY, 20},
+    {ARMOURED_INFANTRY, 30},
+    {SHOCK_INFANTRY, 30},
+    {CAVALRY, 50},
+  };
+
+  typedef std::unordered_map<UNIT_TEMPLATE, std::uint8_t> UnitConfig;
+  std::unordered_map<Player, UnitConfig> player_units;
+  std::unordered_set<Player> ready_players;
   void parse_toggle_ready(byte_istream &args, byte_ostream &response, const Player& player) {
     // todo
+    ready_players.insert(player);
   }
 
-  void parse_unit_add(byte_istream &args, byte_ostream &response, const Player& player) {
-    // todo
-  }
-
-  void parse_unit_remove(byte_istream &args, byte_ostream &response, const Player& player) {
-    // todo
-  }
 
   void parse_units_add(byte_istream &args, byte_ostream &response, const Player& player) {
     // todo
-  }
+    // i will force the client to send all data in one batch
 
-  void parse_team_join(byte_istream &args, byte_ostream &response, const Player& player) {
-    // todo
-  }
 
-  void parse_team_leave(byte_istream &args, byte_ostream &response, const Player& player) {
-    // todo
-  }
 
-  void parse_set_faction(byte_istream &args, byte_ostream &response, const Player& player) {
-    // todo
+    auto id = contextManager.lobby_containing_player(player);
+    if (!id.has_value()) { //todo change to <Player, Lobby> in JOINED_LOBBIES
+      response << Response::ERROR << Response::ERROR_TYPE::CONFLICT; // already in a lobby
+      return;
+    }
+    auto & lobby = open_lobbies.at(id.value());
+    const auto & config = lobby.get_config();
+    std::uint64_t total_cost = 0; // to prevent overflow attacks
+    std::uint64_t total_units = 0;
+
+    UnitConfig units;
+
+    std::uint8_t num_unit_types;
+
+    args >> num_unit_types;
+
+    for (std::uint8_t i = 0; i < num_unit_types; ++i) {
+      UNIT_TEMPLATE unit_type;
+      std::uint8_t num_units;
+      args >> unit_type;
+      args >> num_units;
+      if ( ! unitCosts.contains(unit_type)) {
+        response << Response::ERROR << Response::ERROR_TYPE::INVALID_ARGUMENTS;
+        return;
+      }
+
+      units[unit_type] = num_units;
+      total_cost += unitCosts.at(unit_type) * num_units;
+      total_units += num_units;
+    }
+    if (total_cost > config.budget) {
+      response << Response::ERROR << Response::ERROR_TYPE::CONFLICT;
+      return;
+    }
+    if (total_units > config.max_units) {
+      response << Response::ERROR << Response::ERROR_TYPE::CONFLICT;
+      return;
+
+    }
+    player_units[player] = units;
   }
 
   void parse_start(byte_istream &args, byte_ostream &response, const Player& player) {
     // todo
+    auto id = contextManager.lobby_containing_player(player);
+    if (!id.has_value()) { //todo change to <Player, Lobby> in JOINED_LOBBIES
+      response << Response::ERROR << Response::ERROR_TYPE::CONFLICT; // already in a lobby
+      return;
+    }
+    auto & lobby = open_lobbies.at(id.value());
+    if (player != lobby.get_admin()) {
+      response << Response::ERROR << Response::ERROR_TYPE::UNAUTHORIZED;
+      return;
+    }
+    const auto & config = lobby.get_config();
+    // create battle object
+    // start loop
   }
 public:
   ArmyCreationManager(ContextManager &contextManager,
@@ -313,28 +372,8 @@ public:
         parse_toggle_ready(command, response, player);
         break;
       }
-      case UNIT_ADD: {
-        parse_unit_add(command, response, player);
-        break;
-      }
-      case UNIT_REMOVE: {
-        parse_unit_remove(command, response, player);
-        break;
-      }
       case UNITS_ADD: {
         parse_units_add(command, response, player);
-        break;
-      }
-      case TEAM_JOIN: {
-        parse_team_join(command, response, player);
-        break;
-      }
-      case TEAM_LEAVE: {
-        parse_team_leave(command, response, player);
-        break;
-      }
-      case SET_FACTION: {
-        parse_set_faction(command, response, player);
         break;
       }
       case START: {

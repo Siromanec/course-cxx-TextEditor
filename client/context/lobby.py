@@ -10,8 +10,7 @@ class LobbyBuilder:
         self.time: bytearray = Time.DAY.value
         self.weather: bytearray = Weather.CLEAR.value
         self.max_players: bytearray = bytearray((0x2,))
-        self.max_teams: bytearray = bytearray((0x2,))
-        self.max_units = (100).to_bytes(1, "little")
+        self.max_units = (20).to_bytes(1, "little")
         self.budget = (1000).to_bytes(4, "little")
         self.ai_players: dict[int, int] = None # dict<team_id, cnt>len|cnt|team_id|...|cnt|team_id or 0
     def set_map(self, map: str):
@@ -28,39 +27,30 @@ class LobbyBuilder:
         if time not in Time.__members__: raise ValueError("Invalid time")
         self.time = Time[time].value
     def set_max_players(self, max_players: int):
-        if int(self.max_teams) > int(self.max_players):
-            raise ValueError("More teams than players. Change the number of teams first")
         self.max_players = max_players.to_bytes(1, "little")
-    def set_max_teams(self, max_teams: int):
-        if int(self.max_teams) > max_teams:
-            for i in range(max_teams, int(self.max_teams)):
-                del self.ai_players[i]
-        if int(self.max_teams) > int(self.max_players):
-            raise ValueError("More teams than players. Change the number of teams first")
-        self.max_teams = max_teams.to_bytes(1, "little")
-    def add_ai_player(self, team_id: int):
-        if team_id < 0 or team_id >= int(self.max_players):
-            raise ValueError("Invalid team")
-        if self.ai_players is None:
-            self.ai_players = dict()
-        self.ai_players[team_id] = self.ai_players.get(team_id, 0) + 1
-    def remove_ai_player(self, team_id: int):
-        if self.ai_players is None:
-            return
-        if team_id not in self.ai_players:
-            return
-        self.ai_players[team_id] -= 1
-        if self.ai_players[team_id] == 0:
-            del self.ai_players[team_id]
-    def ai_dict_to_bytes(self) -> bytes | bytearray:
-        if self.ai_players is None:
-            return b"\x00"
-        res = len(self.ai_players).to_bytes(1, "little")
-        for team_id, cnt in self.ai_players.items():
-            res += team_id.to_bytes(1, "little") + cnt.to_bytes(1, "little")
-        return res
+    # def add_ai_player(self, team_id: int):
+    #     if team_id < 0 or team_id >= int(self.max_players):
+    #         raise ValueError("Invalid team")
+    #     if self.ai_players is None:
+    #         self.ai_players = dict()
+    #     self.ai_players[team_id] = self.ai_players.get(team_id, 0) + 1
+    # def remove_ai_player(self, team_id: int):
+    #     if self.ai_players is None:
+    #         return
+    #     if team_id not in self.ai_players:
+    #         return
+    #     self.ai_players[team_id] -= 1
+    #     if self.ai_players[team_id] == 0:
+    #         del self.ai_players[team_id]
+    # def ai_dict_to_bytes(self) -> bytes | bytearray:
+    #     if self.ai_players is None:
+    #         return b"\x00"
+    #     res = len(self.ai_players).to_bytes(1, "little")
+    #     for team_id, cnt in self.ai_players.items():
+    #         res += team_id.to_bytes(1, "little") + cnt.to_bytes(1, "little")
+    #     return res
     def build(self):
-        return self.time + self.map + self.weather + self.max_players + self.max_teams + self.ai_dict_to_bytes()
+        return self.time + self.map + self.weather + self.max_players + self.max_units + self.budget #+ self.ai_dict_to_bytes()
 
 class CreateLobby(Context):
     def __init__(self):
@@ -109,18 +99,18 @@ class CreateLobby(Context):
                     self.lobby_builder.set_max_teams(int(words[1]))
                 except ValueError as e:
                     print(e)
-            case "ai":
-                match words[1]:
-                    case "add":
-                        if len(words) != 3:
-                            print("usage: ai add <team_id>")
-                            return
-                        self.lobby_builder.add_ai_player(int(words[2]))
-                    case "remove":
-                        if len(words) != 3:
-                            print("usage: ai remove <team_id>")
-                            return
-                        self.lobby_builder.remove_ai_player(int(words[2]))
+            # case "ai":
+            #     match words[1]:
+            #         case "add":
+            #             if len(words) != 3:
+            #                 print("usage: ai add <team_id>")
+            #                 return
+            #             self.lobby_builder.add_ai_player(int(words[2]))
+            #         case "remove":
+            #             if len(words) != 3:
+            #                 print("usage: ai remove <team_id>")
+            #                 return
+            #             self.lobby_builder.remove_ai_player(int(words[2]))
             case "create":
                 # somehow return bytes [AND join the lobby] AND change state to army creation
                 from .army_creation import ArmyCreationContext

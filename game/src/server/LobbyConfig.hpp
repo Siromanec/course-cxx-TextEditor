@@ -28,27 +28,30 @@ enum MAP: uint8_t {
 class LobbyConfig: public serializable {
 public:
   typedef uint8_t team_id_t;
-  TIME time;
-  MAP map;
-  WEATHER weather;
+  TIME time{};
+  MAP map{};
+  WEATHER weather{};
   uint8_t max_players{};
-  uint8_t max_teams{};
-  std::unordered_map<team_id_t, uint8_t> ai_count;
+  uint8_t max_units{};
+  uint32_t budget{};
+//  std::unordered_map<team_id_t, uint8_t> ai_count;
   byte_istream & deserialize(byte_istream &istream) final {
     istream >> time;
     istream >> map;
     istream >> weather;
     istream >> max_players;
-    istream >> max_teams;
-    uint8_t ai_count_size;
-    istream >> ai_count_size;
-    for (uint8_t i = 0; i < ai_count_size; ++i) {
-      team_id_t team_id;
-      uint8_t count;
-      istream >> team_id;
-      istream >> count;
-      ai_count[team_id] = count;
-    }
+    istream >> max_units;
+    istream >> budget;
+
+//    uint8_t ai_count_size;
+//    istream >> ai_count_size;
+//    for (uint8_t i = 0; i < ai_count_size; ++i) {
+//      team_id_t team_id;
+//      uint8_t count;
+//      istream >> team_id;
+//      istream >> count;
+//      ai_count[team_id] = count;
+//    }
     return istream;
 
   }
@@ -57,12 +60,13 @@ public:
     ostream << map;
     ostream << weather;
     ostream << max_players;
-    ostream << max_teams;
-    ostream << ai_count.size();
-    for (const auto &[team_id, count]: ai_count) {
-      ostream << team_id;
-      ostream << count;
-    }
+    ostream << max_units;
+    ostream << budget;
+//    ostream << ai_count.size();
+//    for (const auto &[team_id, count]: ai_count) {
+//      ostream << team_id;
+//      ostream << count;
+//    }
     return ostream;
   }
 };

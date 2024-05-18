@@ -9,9 +9,11 @@ void ContextManager::parse(byte_istream &command, byte_ostream &response, Player
   command >> type;
   switch (type) {
     case LOBBY_MANAGER: {
-      return lobbyManager->parse(command, response, player);
+      lobbyManager->parse(command, response, player);
+      break;
     }
     case ARMY_CREATION_MANAGER: {
+      armyCreationManager->parse(command, response, player);
       break;
     }
     case DEPLOYMENT_MANAGER: {
@@ -21,7 +23,7 @@ void ContextManager::parse(byte_istream &command, byte_ostream &response, Player
       break;
     }
     default: {
-      throw std::runtime_error("unknown context!");
+      response << Response::ERROR << Response::INVALID_CONTEXT;
     }
   }
 }
