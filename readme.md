@@ -1,4 +1,6 @@
-# Text Editor (Total War)
+# Strategy game
+
+most interesting code is in server folder
 
 compile with clion the following target:
 ```
@@ -29,27 +31,9 @@ lobby commands;
                 players <lobby_id>: get all players in a lobby
 
 ```
-sample server logs:
-```
-starting server on udp address 0.0.0.0:8080
-client has connected: 127.0.0.1:43654
-client has connected: 127.0.0.1:48437
-lobby: 1
-lobby: 1
-        player: 2
-        player: 1
-lobby: 1
-        player: 1
-lobby: 1
-        player: 2
-        player: 1
-dud command from player: 2
-client has connected: 127.0.0.1:45598
-```
-currently all "get" requsets are not implemented. They are just logged by the server.
-the "dud" command is a command that had wrong arguments/ had invalid state; 
-the server should send some error message to the client.
-
+server has almost no logs
+all data is sent back to client, but is not parsed yet on the client side
 ## protocol diagram
 
-![img.png](img.png)
+![image](https://github.com/Siromanec/course-cxx-real-time-multiplayer-strategy-game/assets/91615647/f44f38ca-84d7-42cd-93ba-feda67588f68)
+
