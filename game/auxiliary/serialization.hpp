@@ -89,7 +89,9 @@ public:
     offset += sizeof(T);
     return *this;
   }
-
+  /*
+   * expects preallocated storage
+   * */
   template<class T>
   requires requires(T item) {
     item.data();
@@ -100,10 +102,8 @@ public:
 
 
   byte_istream &operator>>(T &item) {
-    // expects preallocated storage
     typedef typename std::iterator_traits<decltype(item.begin())>::value_type contained_t;
     size_t size_ = sizeof(contained_t) * (item.end() - item.begin());
-//    container.resize(container.size() + size_);
     std::memmove(item.data(), container.data() + offset, size_);
     offset += size_;
     return *this;

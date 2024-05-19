@@ -9,10 +9,11 @@
 #include <numeric>
 #include <vector>
 #include <tuple>
+#include "serialization.hpp"
 
 //https://programmingpraxis.com/2012/03/09/sparse-sets/
 template <typename T>
-class sparse_set {
+class sparse_set: public serializable {
   typedef std::size_t index_t;
   typedef T value_t;
   typedef std::vector<value_t> data_container_t;
@@ -118,6 +119,34 @@ public:
       swap_dense(i, j);
     }
   }
+  byte_ostream &serialize(byte_ostream &o) const final {
+    // needs to send only the data and dense
+    // size is already written by operator <<
+    o << std::span(dense);
+    o << std::span(data);
+    return o;
+  }
+  byte_istream &deserialize(byte_istream &o) final {
+    // todo rewrite operator >> for every component
+
+    std::size_t dense_size_in_bytes;
+    std::size_t data_size_in_bytes;
+    o >> dense_size_in_bytes;
+    std::size_t dense_size = dense_size_in_bytes / sizeof(index_t);
+    std::vector<index_t> dense_(dense_size);
+    o >> std::span(dense_);
+    o >> data_size_in_bytes;
+    std::size_t data_size = data_size_in_bytes / sizeof(value_t);
+    std::vector<value_t> data_(data_size);
+    o >> std::span(data_);
+    dense = std::move(dense_);
+    data = std::move(data_);
+    for (std::size_t i = 0; i < dense.size(); ++i) {
+      sparse[dense[i]] = i;
+    }
+    return o;
+  }
+
 };
 
 /* component group. each component must create strict one directional set hierarchy (aka position is superset of direction and direction is superset of speed)
@@ -125,9 +154,10 @@ public:
  * referencing a component that does not belong to the universe is undefined behavior
  * */
 template <typename ...Types>
-class ComponentGroup {
+class ComponentGroup: public serializable {
   const std::size_t universe_size;
   std::tuple<sparse_set<Types>...> sets;
+
 public:
   explicit ComponentGroup(std::size_t universe_size) :
       universe_size(universe_size),
@@ -168,6 +198,18 @@ public:
     }, sets);
 
     set_to_be_inserted.insert(i, std::forward<Component>(component));
+  }
+  byte_ostream &serialize(byte_ostream &o) const final {
+    std::apply([&o](auto &... set) {
+      (set.serialize(o), ...); // you d better be in the same order every time
+    }, sets);
+    return o;
+  }
+  byte_istream &deserialize(byte_istream &o) final {
+    std::apply([&o](auto &... set) {
+      (set.deserialize(o), ...); // you d better be in the same order every time
+    }, sets);
+    return o;
   }
 
 

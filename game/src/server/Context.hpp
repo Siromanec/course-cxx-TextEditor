@@ -15,6 +15,7 @@
 #include "../Player.hpp"
 #include "Response.hpp"
 #include "LobbyConfig.hpp"
+#include "Unit.hpp"
 
 
 class Context : public std::enable_shared_from_this<Context> {
@@ -273,7 +274,7 @@ class ArmyCreationManager: public Context {
     {CAVALRY, 50},
   };
 
-  typedef std::unordered_map<UNIT_TEMPLATE, std::uint8_t> UnitConfig;
+
   std::unordered_map<Player, UnitConfig> player_units;
   std::unordered_set<Player> ready_players;
   void parse_toggle_ready(byte_istream &args, byte_ostream &response, const Player& player) {
