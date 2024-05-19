@@ -8,74 +8,16 @@
 
 #include <optional>
 #include <numeric>
+#include <glm/vec2.hpp>
+#include <glm/geometric.hpp>
 #include "LobbyConfig.hpp"
-//https://programmingpraxis.com/2012/03/09/sparse-sets/
-template <typename T>
-class sparse_set {
-  typedef std::size_t index_t;
-  typedef T value_t;
-  typedef std::vector<value_t> data_container_t;
-  typedef std::vector<index_t> dense_container_t;
-  typedef std::vector<index_t> sparse_container_t;
-  typedef data_container_t::iterator iterator;
-  typedef data_container_t::const_iterator const_iterator;
-  data_container_t data;
-  dense_container_t dense;
-  sparse_container_t sparse;
-  const std::size_t universe_size;
-public:
-  explicit sparse_set(std::size_t universe_size) :
-  universe_size(universe_size),
-  sparse(universe_size, std::numeric_limits<std::size_t>::max()) {}
+#include "EntityComponentSystem.hpp"
+#include "Unit.hpp"
 
-  constexpr
-  void insert(index_t i, value_t && value) {
-    dense.emplace_back(i);
-    data.emplace_back(std::forward(value));
-    sparse[i] = dense.size() - 1;
-  }
-
-  constexpr
-  void erase(index_t i) {
-    auto last = dense.back();
-    dense[sparse[i]] = last;
-    sparse[last] = sparse[i];
-    dense.pop_back();
-    data.pop_back();
-  }
-  // not implementing contains method because it would lead to bad design (seductive if statements)
-  constexpr
-  T &operator[](index_t i) {
-    return data[sparse[i]];
-  }
-  constexpr
-  const T &operator[](index_t i) const {
-    return data[sparse[i]];
-  }
-
-  constexpr
-  iterator begin() {
-    return data.begin();
-  }
-  constexpr
-  iterator end() {
-    return data.end();
-  }
-  [[nodiscard]] constexpr
-  const_iterator begin() const {
-    return data.begin();
-  }
-  [[nodiscard]] constexpr
-  const_iterator end() const {
-    return data.end();
-  }
-};
 
 struct LocationComponent {
-  typedef float x_t;
-  typedef float y_t;
-  x_t x;
-  y_t y;
+  typedef glm::vec2 location_t;
+  location_t location;
 };
 
 struct MovementComponent {
@@ -95,35 +37,86 @@ struct AttackComponent {
   attack_t attack;
 };
 
-struct UnitStats {
-  typedef int health_t;
-  typedef int attack_t;
-  typedef int defense_t;
-  typedef float speed_t;
-  typedef float range_t;
-  health_t health;
-  attack_t attack;
-  defense_t defense;
-  speed_t speed;
-  range_t range;
+struct DirectionComponent {
+  typedef glm::vec2 direction_t;
+  direction_t direction;
 };
 
+struct SpeedComponent {
+  typedef float speed_t;
+  speed_t speed;
+};
+
+//void use_group(){
+//  ComponentGroup<HealthComponent, LocationComponent, MovementComponent> group(100);
+//  group.get<HealthComponent>().insert(0, HealthComponent{100});
+//  group.get<LocationComponent>().insert(0, LocationComponent{0, 0});
+//  group.get<MovementComponent>().insert(0, MovementComponent{1, 0});
+//  group.get<HealthComponent>().insert(1, HealthComponent{100});
+//  group.get<LocationComponent>().insert(1, LocationComponent{0, 0});
+//  group.get<MovementComponent>().insert(1, MovementComponent{1, 0});
+//  group.get<HealthComponent>().insert(2, HealthComponent{100});
+//  group.get<LocationComponent>().insert(2, LocationComponent{0, 0});
+//  group.get<MovementComponent>().insert(2, MovementComponent{1, 0});
+//  group.erase<HealthComponent>(1);
+//}
+
+struct DestinationComponent {
+  typedef glm::vec2 destination_t;
+  destination_t destination;
+};
+struct UnitStatsComponent {
+  UNIT_TEMPLATE unit_template;
+  [[nodiscard]] const UnitStats& get_stats() const {
+    return get_unit_stats(unit_template);
+  }
+};
 class UnitComponentSystem {
+  ComponentGroup<LocationComponent, DirectionComponent, DestinationComponent, SpeedComponent> movementComponentGroup;
+  sparse_set<HealthComponent> healthComponent;
+  sparse_set<AttackComponent> attackComponent;
+  sparse_set<UnitStatsComponent> unitStatsComponent;
   typedef uint32_t UnitId;
 
-//  sparse_set<HealthComponent> health_component;
-//  std::vector<std::optional<UnitId>> target_component;
-    sparse_set<LocationComponent> location_component;
-    sparse_set<MovementComponent> movement_component;
-//  std::vector<UnitStats::attack_t> health_component;
-  void update_damage() {
+
+  void set_destination(UnitId id, glm::vec2 destination) {
+    auto direction = glm::normalize(destination - movementComponentGroup.get<LocationComponent>()[id].location);
+
+    const auto& stats = unitStatsComponent[id].get_stats();
+
+    movementComponentGroup.insert(id, DestinationComponent{destination});
+    movementComponentGroup.insert(id, DirectionComponent{direction});
+    movementComponentGroup.insert(id, SpeedComponent{stats.speed}); // no acceleration for now
+
 
   }
-  void update() {
-//    for (int i = 0; i < health_component.size(); i++) {
-//      health_component[i] -= 1;
-//    }
-
+  void update_movement(float delta_time) {
+    auto speed_begin = movementComponentGroup.get<SpeedComponent>().begin();
+    auto speed_end = movementComponentGroup.get<SpeedComponent>().end();
+    auto destination_begin = movementComponentGroup.get<DestinationComponent>().begin();
+    auto direction_begin = movementComponentGroup.get<DirectionComponent>().begin();
+    auto location_begin = movementComponentGroup.get<LocationComponent>().begin();
+    std::vector<UnitId> to_stop;
+    for(std::size_t i = 0; speed_begin != speed_end; ++i, ++speed_begin, ++direction_begin, location_begin, destination_begin)
+    {
+      // would be nice to stop the motion when close to destination
+      auto distance_to_dest = glm::distance(location_begin->location, destination_begin->destination);
+      auto distance_to_move = speed_begin->speed * delta_time;
+      if(distance_to_move > distance_to_dest){
+        location_begin->location = destination_begin->destination;
+        to_stop.push_back(movementComponentGroup.get<SpeedComponent>().get_dense()[i]);
+        continue;
+      }
+      location_begin->location += distance_to_move * direction_begin->direction;
+    }
+    for(auto id : to_stop){
+      movementComponentGroup.erase<SpeedComponent>(id);
+      movementComponentGroup.erase<DirectionComponent>(id);
+      movementComponentGroup.erase<DestinationComponent>(id);
+    }
+  }
+  void update(float delta_time) {
+    update_movement(delta_time);
   }
 
 

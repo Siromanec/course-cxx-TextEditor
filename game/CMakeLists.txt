@@ -79,6 +79,10 @@ set(GAME_INCLUDE
         src/server/Header.hpp
         src/server/BattleBuilder.cpp
         src/server/BattleBuilder.hpp
+        src/server/EntityComponentSystem.cpp
+        src/server/EntityComponentSystem.hpp
+        src/server/Unit.cpp
+        src/server/Unit.hpp
 )
 
 
