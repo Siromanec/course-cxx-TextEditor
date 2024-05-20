@@ -53,6 +53,14 @@ public:
     container.insert(container.end(), s.container.begin(), s.container.end());
     return *this;
   }
+  template<class T>
+  requires (!std::is_trivial_v<typename std::span<T>::value_type>)
+  byte_ostream &operator<<(std::span<T> item) {
+    for (auto &i : item) {
+      *this << i;
+    }
+    return *this;
+  }
 
 };
 
@@ -115,6 +123,14 @@ public:
     size_t size_ = item.size_bytes();
     std::memmove(item.data(), container.data() + offset, size_);
     offset += size_;
+    return *this;
+  }
+  template<class T>
+  requires (!std::is_trivial_v<typename std::span<T>::value_type>)
+  byte_istream &operator>>(std::span<T> item) {
+    for (auto &i : item) {
+      *this >> i;
+    }
     return *this;
   }
 

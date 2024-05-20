@@ -145,6 +145,26 @@ target_link_libraries(${GAME_LIB_NAME} glm::glm)
 target_link_libraries(${GAME_LIB_NAME} pthread)
 
 
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+#option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+
+include(FetchContent)
+FetchContent_Declare(SFML
+        GIT_REPOSITORY https://github.com/SFML/SFML.git
+        GIT_TAG 2.6.x)
+FetchContent_MakeAvailable(SFML)
+
+#target_compile_features(run_game_server PRIVATE cxx_std_23)
+
+if(WIN32)
+    add_custom_command(
+            TARGET run_game_server
+            COMMENT "Copy OpenAL DLL"
+            PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${SFML_SOURCE_DIR}/extlibs/bin/$<IF:$<EQUAL:${CMAKE_SIZEOF_VOID_P},8>,x64,x86>/openal32.dll $<TARGET_FILE_DIR:CMakeSFMLProject>
+            VERBATIM)
+endif()
+
+#install(TARGETS CMakeSFMLProject)
 
 add_executable(run_game_server
         src/server/GameServer.cpp
@@ -152,6 +172,8 @@ add_executable(run_game_server
         auxiliary/serialization.hpp
         src/server/Context.cpp
         src/server/Context.hpp)
+target_link_libraries(run_game_server PRIVATE sfml-graphics)
+target_link_libraries(run_game_server PRIVATE ${GAME_LIB_NAME})
 target_include_directories(run_game_server PRIVATE ${Boost_INCLUDE_DIR})
 target_compile_definitions(run_game_server PRIVATE RUN_GAME_SERVER=1)
 #target_link_libraries(run_game_server Boost::asio)

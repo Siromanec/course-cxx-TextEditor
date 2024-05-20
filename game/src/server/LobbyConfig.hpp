@@ -35,6 +35,9 @@ public:
   uint8_t max_units{};
   uint32_t budget{};
 //  std::unordered_map<team_id_t, uint8_t> ai_count;
+  LobbyConfig() = default;
+  LobbyConfig(TIME time, MAP map, WEATHER weather, uint8_t max_players, uint8_t max_units, uint32_t budget):
+      time(time), map(map), weather(weather), max_players(max_players), max_units(max_units), budget(budget) {}
   byte_istream & deserialize(byte_istream &istream) final {
     istream >> time;
     istream >> map;

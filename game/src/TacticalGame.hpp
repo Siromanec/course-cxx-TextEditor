@@ -76,7 +76,7 @@ public:
         std::promise<TacticalGameState> promise;
         if (playerOutQueue.try_pop(promise)) {
           promise.set_value(TacticalGameState{.ticks = clock.getTicks()});
-          std::cout << clock.getTicks() << ' ' << static_cast<typename Player::player_id_t> (player) << std::endl;
+//          std::cout << clock.getTicks() << ' ' << static_cast<typename Player::player_id_t> (player) << std::endl;
         }
       }
 

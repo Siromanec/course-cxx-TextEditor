@@ -9,6 +9,7 @@
 #include <numeric>
 #include <vector>
 #include <tuple>
+#include <cassert>
 #include "serialization.hpp"
 
 //https://programmingpraxis.com/2012/03/09/sparse-sets/
@@ -35,6 +36,7 @@ public:
     if (sparse[i] < dense.size()) {
       // component already exists
       data[sparse[i]] = std::forward<value_t>(value);
+      dense[sparse[i]] = i;
       return;
     }
     dense.emplace_back(i);
@@ -55,7 +57,6 @@ public:
     data.pop_back();
     sparse[last] = std::numeric_limits<std::size_t>::max();
   }
-  [[nodiscard]] constexpr
   constexpr
   void swap(index_t i, index_t j) {
     // swaps entities
@@ -116,6 +117,7 @@ public:
   }
   void swap_dense_if_contains(index_t i, index_t j) {
     if (j < (dense.size())) {
+      assert(i < dense.size());
       swap_dense(i, j);
     }
   }
@@ -181,7 +183,7 @@ public:
     auto j = size - 1;
 
     std::apply([i, j](auto &... set) {
-      (set.swap_dense_if_contains(i, j), ...);
+      (set.swap_dense_if_contains(set.get_sparse()[i], j), ...);
     }, sets);
 
     set_to_be_erased.pop_back();
@@ -191,10 +193,13 @@ public:
     // insert a component anywhere and keep the dense array aligned
     auto & set_to_be_inserted = std::get<sparse_set<Component>>(sets);
     auto size = set_to_be_inserted.get_dense().size();
-    auto j = size;
+    auto j = set_to_be_inserted.get_sparse()[i];
+    if (j >= size) {
+      j = size;
+    }
 
     std::apply([i, j](auto &... set) {
-      (set.swap_dense_if_contains(i, j), ...);
+      (set.swap_dense_if_contains(set.get_sparse()[i], j), ...);
     }, sets);
 
     set_to_be_inserted.insert(i, std::forward<Component>(component));

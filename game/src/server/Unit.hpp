@@ -14,10 +14,14 @@ struct UnitStats {
   typedef int attack_t;
   typedef float speed_t;
   typedef float range_t;
+  typedef float unit_size_t;
+  typedef float attack_cool_down_t;
   health_t health;
   attack_t attack;
   speed_t speed;
   range_t range;
+  unit_size_t size;
+  attack_cool_down_t attack_cool_down;
 };
 
 enum UNIT_TEMPLATE : uint8_t {
