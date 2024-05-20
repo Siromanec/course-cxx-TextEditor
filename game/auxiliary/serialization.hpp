@@ -157,6 +157,7 @@ public:
   friend byte_istream &operator>>(byte_istream &o, serializable &s) {
     return s.deserialize(o);
   }
+  virtual ~serializable() = default;
 };
 
 

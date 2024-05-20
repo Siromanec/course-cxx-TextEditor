@@ -189,6 +189,23 @@ public:
     set_to_be_erased.pop_back();
   }
   template <typename Component>
+  void erase_if_present(std::size_t i) {
+    // deletes a component and reorders the dense array to keep all items aligned
+
+    auto & set_to_be_erased = std::get<sparse_set<Component>>(sets);
+    auto size = set_to_be_erased.get_dense().size();
+    auto j = size - 1;
+    if (set_to_be_erased.get_sparse()[i] >= size) {
+      return;
+    }
+
+    std::apply([i, j](auto &... set) {
+      (set.swap_dense_if_contains(set.get_sparse()[i], j), ...);
+    }, sets);
+
+    set_to_be_erased.pop_back();
+  }
+  template <typename Component>
   void insert(std::size_t i, Component && component) {
     // insert a component anywhere and keep the dense array aligned
     auto & set_to_be_inserted = std::get<sparse_set<Component>>(sets);

@@ -71,11 +71,8 @@ int main() {
 //  sf::View view1(sf::FloatRect(200.f, 200.f, 300.f, 200.f));
 
 // create a view with its center and size
-  sf::View view2(sf::Vector2f(0, 0), sf::Vector2f(16., 16.));
+  sf::View view2(sf::Vector2f(200, 50), sf::Vector2f(400., 400.));
 
-  sf::CircleShape shape(100);
-  shape.setFillColor(sf::Color::Green);
-  shape.setPosition(100, 100);
   window.setView(view2);
 
 //  window
@@ -86,29 +83,34 @@ int main() {
       Player(),
       Player(),
   };
+  uint8_t unit_count = 255;
+
   std::unordered_map<Player, UnitConfig>
   unitConfig_map = {
-      {players.at(0), UnitConfig{{UNIT_TEMPLATE::INFANTRY,          255},
-                                 {UNIT_TEMPLATE::CAVALRY,           255},
-                                 {UNIT_TEMPLATE::SHOCK_INFANTRY,    255},
-                                 {UNIT_TEMPLATE::ARMOURED_INFANTRY, 255},
-                                 {UNIT_TEMPLATE::PEASANTS,          255}}
+      {players.at(0), UnitConfig{{UNIT_TEMPLATE::INFANTRY,          unit_count},
+                                 {UNIT_TEMPLATE::CAVALRY,           unit_count},
+                                 {UNIT_TEMPLATE::SHOCK_INFANTRY,    unit_count},
+                                 {UNIT_TEMPLATE::ARMOURED_INFANTRY, unit_count},
+                                 {UNIT_TEMPLATE::PEASANTS,          unit_count}}
                                  },
-       {players.at(1), UnitConfig{{UNIT_TEMPLATE::INFANTRY,          255},
-                                  {UNIT_TEMPLATE::CAVALRY,           255},
-                                  {UNIT_TEMPLATE::SHOCK_INFANTRY,    255},
-                                  {UNIT_TEMPLATE::ARMOURED_INFANTRY, 255},
-                                  {UNIT_TEMPLATE::PEASANTS,          255}}},
-                                         {players.at(2), UnitConfig{{UNIT_TEMPLATE::INFANTRY,          255},
-                                  {UNIT_TEMPLATE::CAVALRY,           255},
-                                  {UNIT_TEMPLATE::SHOCK_INFANTRY,    255},
-                                  {UNIT_TEMPLATE::ARMOURED_INFANTRY, 255},
-                                  {UNIT_TEMPLATE::PEASANTS,          255}}},
-                                         {players.at(3), UnitConfig{{UNIT_TEMPLATE::INFANTRY,          255},
-                                  {UNIT_TEMPLATE::CAVALRY,           255},
-                                  {UNIT_TEMPLATE::SHOCK_INFANTRY,    255},
-                                  {UNIT_TEMPLATE::ARMOURED_INFANTRY, 255},
-                                  {UNIT_TEMPLATE::PEASANTS,          255}}},
+       {players.at(1), UnitConfig{
+         {UNIT_TEMPLATE::INFANTRY,          unit_count},
+                                  {UNIT_TEMPLATE::CAVALRY,           unit_count},
+                                  {UNIT_TEMPLATE::SHOCK_INFANTRY,    unit_count},
+                                  {UNIT_TEMPLATE::ARMOURED_INFANTRY, unit_count},
+                                  {UNIT_TEMPLATE::PEASANTS,          unit_count}}},
+                                         {players.at(2),
+                                          UnitConfig{{UNIT_TEMPLATE::INFANTRY,          unit_count},
+                                  {UNIT_TEMPLATE::CAVALRY,           unit_count},
+                                  {UNIT_TEMPLATE::SHOCK_INFANTRY,    unit_count},
+                                  {UNIT_TEMPLATE::ARMOURED_INFANTRY, unit_count},
+                                  {UNIT_TEMPLATE::PEASANTS,          unit_count}}},
+                                         {players.at(3),
+                                          UnitConfig{{UNIT_TEMPLATE::INFANTRY,          unit_count},
+                                  {UNIT_TEMPLATE::CAVALRY,           unit_count},
+                                  {UNIT_TEMPLATE::SHOCK_INFANTRY,    unit_count},
+                                  {UNIT_TEMPLATE::ARMOURED_INFANTRY, unit_count},
+                                  {UNIT_TEMPLATE::PEASANTS,          unit_count}}},
 //      {players.at(1), UnitConfig{{UNIT_TEMPLATE::INFANTRY, 10}}},
       };
       LobbyConfig lobbyConfig = LobbyConfig(TIME::DAY, MAP::PLAIN, WEATHER::CLEAR, 2, 10, 1000);
@@ -118,14 +120,14 @@ int main() {
       builder.parseUnitConfig(unitConfig_map);
       auto battle = builder.build();
       float delta_time = 1. / framerate;
-      UnitId selectedUnitId = std::numeric_limits<UnitId>::max();
 
 
       sf::Vector2f mouse_pos_clicked;
       sf::Vector2f mouse_pos_released;
-      bool was_released = false;
+      bool was_released = true;
       glm::vec4 boundingBox;
       std::vector<UnitId> selectedUnits;
+      auto current_player = players.at(0);
 
       while (window.isOpen()) {
         for (auto event = sf::Event{}; window.pollEvent(event);) {
@@ -146,6 +148,18 @@ int main() {
                   break;
                 case sf::Keyboard::Right:
                   view2.move(2.5, 0);
+                  break;
+                case sf::Keyboard::Num1:
+                  current_player = players.at(0);
+                  break;
+                case sf::Keyboard::Num2:
+                  current_player = players.at(1);
+                  break;
+                case sf::Keyboard::Num3:
+                  current_player = players.at(2);
+                  break;
+                case sf::Keyboard::Num4:
+                  current_player = players.at(3);
                   break;
                 default:
                   break;
@@ -195,7 +209,7 @@ int main() {
               auto max_y = std::max(mouse_pos_clicked.y, mouse_pos_released.y);
 
               boundingBox = {min_x, min_y, max_x, max_y};
-              selectedUnits = battle.select_units_in(boundingBox);
+              selectedUnits = battle.select_units_in(boundingBox, current_player);
 
               was_released = true;
               break;
@@ -216,7 +230,7 @@ int main() {
         window.clear();
         battle.update(delta_time);
 
-        drawGrid(window, 16 * 8, 16 * 8, -16 * 8 / 2, -16 * 8 / 2);
+//        drawGrid(window, 16 * 8, 16 * 8, -16 * 8 / 2, -16 * 8 / 2);
         if (!was_released) {
           sf::RectangleShape rect;
           mouse_pos_released = window.mapPixelToCoords(sf::Mouse::getPosition(window));
@@ -224,8 +238,25 @@ int main() {
           rect.setPosition(boundingBox.x, boundingBox.y);
           rect.setSize({boundingBox.z - boundingBox.x, boundingBox.w - boundingBox.y});
           rect.setFillColor(sf::Color::Transparent);
-          rect.setOutlineColor(sf::Color::Red);
-          rect.setOutlineThickness(0.1);
+          sf::Color color;
+
+          switch (current_player.getID()) {
+            case 1:
+              color = sf::Color::Red;
+              break;
+            case 2:
+              color = sf::Color::Blue;
+              break;
+            case 3:
+              color = sf::Color::Green;
+              break;
+            case 4:
+              color = sf::Color::Yellow;
+              break;
+
+          }
+          rect.setOutlineColor(color);
+          rect.setOutlineThickness(0.3);
           window.draw(rect);
         }
         battle.draw(window);

@@ -38,6 +38,7 @@ public:
     ostream << id;
     return ostream;
   }
+  [[nodiscard]] player_id_t getID() const { return id; }
 };
 
 // it appears that virtual base classes are at least 8 bytes without any data members
