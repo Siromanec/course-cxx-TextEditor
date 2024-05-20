@@ -113,9 +113,10 @@ class UnitComponentSystem : public serializable {
   }
   void update_cool_down(float delta_time) {
     // ignore dead
-    while (!on_cooldown.empty() && std::get<expiry_time_t>(on_cooldown.top()) < time) {
+    while (!on_cooldown.empty() && std::get<expiry_time_t>(on_cooldown.top()) > - time) {
       auto [_, id] = on_cooldown.top();
       on_cooldown.pop();
+//      on_cooldown.
 
       auto & sparse = attackComponentGroup.get<UnitStatsComponent>().get_sparse();
       auto & dense = attackComponentGroup.get<UnitStatsComponent>().get_dense();
@@ -162,7 +163,7 @@ class UnitComponentSystem : public serializable {
         if (distance < stats.range) {
           // attack
           if (time > stats.attack_cool_down) {
-            on_cooldown.emplace(time + stats.attack_cool_down, id);
+            on_cooldown.emplace( - (time + stats.attack_cool_down), id);
             other_health_begin->health -= stats.attack;
 //            std::cout << "Unit " << id << " attacked unit " << *other_dense_begin << "Final health: " << other_health_begin->health   << std::endl;
             attacked.push_back(id);
